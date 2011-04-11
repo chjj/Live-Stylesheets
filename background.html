@@ -2,30 +2,30 @@
 
 // make the icon functional
 chrome.browserAction.onClicked.addListener(function(tab) {
-	chrome.tabs.sendRequest(tab.id, {toggle: true});
+  chrome.tabs.sendRequest(tab.id, {toggle: true});
 });
 
 // a simple get request
 chrome.extension.onRequest.addListener(function(req, sender, send) {
-	if (!req.get) return;
-	var xhr = new XMLHttpRequest();
-	/*var timeout = setTimeout(function() {
-		xhr.onreadystatechange = function() {};
-		xhr.abort();
-		send({err:'Timeout.'});
-	}, 5000);*/
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState === 4) { 
-			if (xhr.status === 200 && xhr.responseText) {
-				send({text:xhr.responseText});
-			} else {
-				send({err:'Bad response.'});
-			}
-			//clearTimeout(timeout);
-		}
-	};
-	xhr.open('GET', req.get, true);
-	xhr.send();
+  if (!req.get) return;
+  var xhr = new XMLHttpRequest();
+  /*var timeout = setTimeout(function() {
+    xhr.onreadystatechange = function() {};
+    xhr.abort();
+    send({err:'Timeout.'});
+  }, 5000);*/
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) { 
+      if (xhr.status === 200 && xhr.responseText) {
+        send({text:xhr.responseText});
+      } else {
+        send({err:'Bad response.'});
+      }
+      //clearTimeout(timeout);
+    }
+  };
+  xhr.open('GET', req.get, true);
+  xhr.send();
 });
 
 })();</script>

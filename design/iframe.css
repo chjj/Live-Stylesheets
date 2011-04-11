@@ -1,9 +1,9 @@
 html, body { margin: 0; padding: 0; overflow: hidden; }
 
 div {
-	height: 20px; margin: 0; padding: 5px; border-top: #b6bac0 solid 1px; font: 12px/1 verdana, sans-serif;
-	background: -webkit-gradient(linear, 0% 100%, 0% 0%, color-stop(0.1, #e5e5e5), color-stop(1.0, #fff));
-	background: linear-gradient(90deg, #e5e5e5 10%, #fff 100%)
+  height: 20px; margin: 0; padding: 5px; border-top: #b6bac0 solid 1px; font: 12px/1 verdana, sans-serif;
+  background: -webkit-gradient(linear, 0% 100%, 0% 0%, color-stop(0.1, #e5e5e5), color-stop(1.0, #fff));
+  background: linear-gradient(90deg, #e5e5e5 10%, #fff 100%)
 }
 
 button, select { font: inherit; outline: none !important; }
@@ -11,17 +11,17 @@ div > button { float: right; }
 div > select { float: left; }
 
 div > label {
-	float: left; margin-left: 20px; 
-	margin-top: 2px; line-height: 18px;
+  float: left; margin-left: 20px; 
+  margin-top: 2px; line-height: 18px;
 }
 
 div > label > input {
-	display: block; float: left;
+  display: block; float: left;
 }
 
 textarea {
-	height: 219px; width: 100%; padding: 5px; margin: 0; 
-	resize: none; font: 11px/1.4 monospace;
-	border: #b6bac0 solid 1px; background: #fff; 
-	outline: none !important;
+  height: 219px; width: 100%; padding: 5px; margin: 0; 
+  resize: none; font: 11px/1.4 monospace;
+  border: #b6bac0 solid 1px; background: #fff; 
+  outline: none !important;
 }

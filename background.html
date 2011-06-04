@@ -9,19 +9,19 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 chrome.extension.onRequest.addListener(function(req, sender, send) {
   if (!req.get) return;
   var xhr = new XMLHttpRequest();
-  /*var timeout = setTimeout(function() {
+  var timeout = setTimeout(function() {
     xhr.onreadystatechange = function() {};
     xhr.abort();
     send({err:'Timeout.'});
-  }, 5000);*/
+  }, 5000);
   xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4) { 
-      if (xhr.status === 200 && xhr.responseText) {
+    if (+xhr.readyState === 4) { 
+      clearTimeout(timeout);
+      if ((xhr.status >= 200 && xhr.status < 400) && xhr.responseText) {
         send({text:xhr.responseText});
       } else {
         send({err:'Bad response.'});
       }
-      //clearTimeout(timeout);
     }
   };
   xhr.open('GET', req.get, true);

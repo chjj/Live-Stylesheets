@@ -1,6 +1,6 @@
 // Live Stylesheet Editing
-// (c) Copyright 2010-2011, Christopher Jeffrey (http://epsilon-not.net/)
-// see LICENSE for more info
+// (c) Copyright 2010-2011, Christopher Jeffrey (//github.com/chjj)
+// See LICENSE for more info.
 (function() { 
 // the "toggle" key code - default is F9
 var KEY_CODE = 120; 
@@ -27,9 +27,9 @@ if (USE_SPACES) {
   TAB_CHARACTERS = '\t';
 }
 
-var doc = document, root = doc.documentElement;
+var doc = this.document, root = doc.documentElement;
 
-var unminifyCSS = function(text) {
+var _unminify = function(text) {
   //return (/}[^\s]/.test(text)) ? (text
   return (!/[\r\n]/.test(text)) ? (text
     .replace(/\r\n/g, '\n')
@@ -50,7 +50,7 @@ var getTextContent = function(el) {
   if (el && el.textContent) {
     var text = el.textContent;
     if (UNMINIFY) {
-      text = unminifyCSS(text);
+      text = _unminify(text);
     }
     if (USE_SPACES) {
       text = text.replace(/\t/g, TAB_CHARACTERS);
@@ -72,16 +72,20 @@ var reqCheck = function(name, func) {
   return function(req) { if (name in req) func(); }
 };
 
-var init = function(callback) {
-  var styles = {}, currentStyle;
+var load = function(func) {
+  var styles = {}, current;
   
   // ========= CREATE THE CHROME ========= //
-  // need to wrap everything in an iframe so the elements are not affected by the page's stylesheet
+  
+  // need to wrap everything in an iframe so the 
+  // elements are not affected by the page's stylesheet
   var frame = (function() {
-    var el, link;
-    el = doc.createElement('iframe');
-    el.id = 'LIVE.STYLESHEETS';
-    root.appendChild(el); //append it to <html> so it doesnt interfere with "body > :last-child"
+    var link, el = doc.createElement('iframe');
+    // "unselectable" id
+    el.id = 'LIVE.STYLESHEETS'; 
+    // append it to HTML to avoid 
+    // interfere with "body > :last-child"
+    root.appendChild(el); 
     link = el.contentDocument.createElement('link');
     link.href = chrome.extension.getURL('design/iframe.css');
     link.rel = 'stylesheet';
@@ -105,8 +109,9 @@ var init = function(callback) {
     return el;
   })();
   
-  // button to swap the edit box's position in case it is covering part of the page
-  var switchButton = (function() {
+  // button to swap the edit box's position 
+  // in case it is covering part of the page
+  var swap = (function() {
     var el = doc.createElement('button');
     el.textContent = 'Switch';
     bar.appendChild(el);
@@ -127,23 +132,25 @@ var init = function(callback) {
     var el = doc.createElement('select');
     bar.appendChild(el);
     el.addEventListener('change', function() {
-      currentStyle = el.value;
-      if (styles[currentStyle]) {
-        edit.textContent = getTextContent(styles[currentStyle]);
+      current = el.value;
+      if (styles[current]) {
+        edit.value = getTextContent(styles[current]);
       }
     }, false);
     return el;
   })();
   
-  // a stylesheet with animations is really annoying to edit - the animations will play every key stroke
-  // this adds a "no animations" checkbox to temporarily disable animations
+  // a stylesheet with animations is really annoying to 
+  // edit - the animations will play every key stroke
+  // this adds a "no animations" checkbox to temporarily 
+  // disable animations
   var check = (function() {
-    var el, label;
-    el = doc.createElement('input');
+    var label, el = doc.createElement('input');
     el.type = 'checkbox';
     label = doc.createElement('label');
     label.textContent = 'No Animations';
-    label.title = 'Animations can be very annoying when you\'re editing stylesheets, click here to turn them off.';
+    label.title = 'Animations can be very annoying when you\'re '
+                  + 'editing stylesheets, click here to turn them off.';
     label.appendChild(el);
     bar.appendChild(label);
     el.addEventListener('change', function() {
@@ -157,43 +164,45 @@ var init = function(callback) {
   })();
   
   // =========== LOAD STYLESHEETS ============ //
-  (function loadStylesheets(done) {  
+  (function load(done) {  
     var elements = Array.prototype.slice.call(doc.querySelectorAll(
       'link[rel="stylesheet"], style'
-    ));
+    )), cur = elements.length;
     
-    // async parallel loop is used 
-    // it doesnt really matter what order this completes in
-    var cur = 0, checkLoop = function() {
-      if (++cur === elements.length) done();
-    };
-    
-    // get the stylesheets through XHR, add <style> elements in place of <link>s
+    // get the stylesheets through XHR, add STYLE elements in place of LINKs
     elements.forEach(function(style, i) {
       var name = (style.href 
         ? ((style.title && !styles[style.title])
           ? style.title 
           : style.href) 
-        : 'style('+i+')'
-      );
-      if (!currentStyle) currentStyle = name;
+        : 'style[' + i + ']'
+      ).slice(0, 40);
+      if (!current) current = name;
       if (style.href) {
         chrome.extension.sendRequest({get: style.href}, function(res) {
           var err = res.err, css = res.text;
           if (err) {
             console.log('ERROR:', err);
-            css = '/* Unable to load '+(style.href || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')+' */';
+            css = '/* Unable to load ' 
+              + (style.href || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+              + ' */';
           }
-          //need to fix relative url()'s in the stylesheet by prefixing them with the link's @href
+          // need to fix relative url()'s in the stylesheet 
+          // by prefixing them with the link's @href
           css = (css
             .replace(/(@import\s+)(["'].+?["'])([^;]*;)/gi, '$1url($2)$3')
             .replace(/url\(([^)]+)\)/gi, function($0, $1) {
-              $1 = $1.replace(/^['"]\s*|\s*['"]$/g, ''); //trim quotes and space
-              if (/^(\/|\w+?:)/.test($1)) return $0; //absolute uri - return as normal
-              return ((/\/$/.test(style.href)) //does it have a trailing slash?
-                ? 'url("'+style.href+$1+'")'
-                : 'url("'+style.href.replace(/[^\/]+$/, '')+$1+'")'
-              );
+              
+              // trim quotes and space
+              $1 = $1.replace(/^['"]\s*|\s*['"]$/g, ''); 
+              
+              // absolute uri - return as normal
+              if (/^(\/|\w+?:)/.test($1)) return $0; 
+              
+              // does it have a trailing slash?
+              return /\/$/.test(style.href)
+                ? 'url("' + style.href + $1 + '")'
+                : 'url("' + style.href.replace(/[^\/]+$/, '') + $1 + '")';
             })
           ); 
           styles[name] = doc.createElement('style');
@@ -202,92 +211,98 @@ var init = function(callback) {
           }
           styles[name].textContent = css;
           style.parentNode.replaceChild(styles[name], style);
-          if (name === currentStyle) {
-            edit.textContent = getTextContent(styles[name]);
+          if (name === current) {
+            edit.value = getTextContent(styles[name]);
           }
-          checkLoop();
+          --cur || done();
         });
       } else {
         styles[name] = style;
-        if (name === currentStyle) {
-          edit.textContent = getTextContent(style);
+        if (name === current) {
+          edit.value = getTextContent(style);
         }
-        checkLoop();
+        --cur || done();
       }
-      select.innerHTML += '<option value="'+name+'">'+name+'</option>';
+      select.innerHTML += '<option value="' + name + '">' + name + '</option>';
     });
   })(function() {
     // ========= BIND EVENTS ========= //
+    var update, scroll = 0;
+    
     // toggle the frame in and out
-    var toggleFrame = function() {
+    var _toggle = function() {
       if (frame.style.display !== 'block') {
         frame.style.display = 'block';
       } else {
         frame.style.display = 'none';
-        if (styles[currentStyle]) {
-          styles[currentStyle].textContent = edit.value;
+        if (styles[current]) {
+          styles[current].textContent = edit.value;
         }
       }
     };
     
-    frame.contentDocument.addEventListener('keydown', keyCheck(toggleFrame), true);
+    frame.contentDocument.addEventListener('keydown', keyCheck(_toggle), false);
     
-    var update;
     // update the stylesheet every key stroke
-    edit.addEventListener('keyup', function(e) {
-      if (!styles[currentStyle] || e.keyCode === KEY_CODE) return;
+    edit.addEventListener('keyup', function(ev) {
+      if (!styles[current] || ev.keyCode === KEY_CODE) return;
       if (UPDATE_TIME) {
-        if (update) clearTimeout(update);
+        if (update) {
+          clearTimeout(update);
+          update = null;
+        }
         update = setTimeout(function() {
-          styles[currentStyle].textContent = edit.value;
+          styles[current].textContent = edit.value;
+          update = null;
         }, UPDATE_TIME);
       } else {
-        styles[currentStyle].textContent = edit.value;
+        styles[current].textContent = edit.value;
       }
     }, false);
     
     // a hacksy way to get tab working as it should
-    var lastScroll = 0;
-    edit.addEventListener('keydown', function(e) {
-      if (e.keyCode == 9) {
-        var start = edit.selectionStart,
-          cur = edit.value;
-        edit.textContent = cur.slice(0, start) + TAB_CHARACTERS + cur.slice(start);
-        edit.setSelectionRange(start + TAB_CHARACTERS.length, start + TAB_CHARACTERS.length);
-        edit.scrollTop = lastScroll;
-        e.preventDefault();
+    edit.addEventListener('keydown', function(ev) {
+      if (+ev.keyCode === 9) {
+        var start = edit.selectionStart, cur = edit.value;
+        edit.value = cur.slice(0, start) + TAB_CHARACTERS + cur.slice(start);
+        start += TAB_CHARACTERS.length;
+        edit.setSelectionRange(start, start);
+        edit.scrollTop = scroll;
+        ev.preventDefault();
+        ev.stopPropagation();
       } else {
-        lastScroll = edit.scrollTop;
+        scroll = edit.scrollTop;
       }
     }, false);
+    
     edit.addEventListener('click', function() {
-      lastScroll = edit.scrollTop;
+      scroll = edit.scrollTop;
     }, false);
     
     // execute the callback
-    return callback(toggleFrame);
+    return func(_toggle);
   });
 };
 
-// toggle the frame whenever the F9 key is pressed
-// or whenever the icon is clicked
-(function bindToggle() {
-  var toggleFrame;
+// toggle the frame whenever the F9 key 
+// is pressed or whenever the icon is clicked
+(function() {
+  var _toggle;
   
   // we need this for lazy loading
   var toggle = function() {
-    if (!toggleFrame) {
-      init(function(func) {
-        toggleFrame = func;
+    if (!_toggle) {
+      load(function(func) {
+        _toggle = func;
         toggle();
       });
     } else {
-      toggleFrame();
+      _toggle();
     }
   };
   
   chrome.extension.onRequest.addListener(reqCheck('toggle', toggle));
-  doc.addEventListener('keydown', keyCheck(toggle), true);
+  doc.addEventListener('keydown', keyCheck(toggle), false);
 })();
 
-})();
+}).call(this);

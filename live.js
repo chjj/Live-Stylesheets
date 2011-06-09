@@ -27,7 +27,7 @@ if (USE_SPACES) {
   TAB_CHARACTERS = '\t';
 }
 
-var doc = this.document, root = doc.documentElement;
+var doc = this.document, root = doc.documentElement, slice = [].slice;
 
 var _unminify = function(text) {
   //return (/}[^\s]/.test(text)) ? (text
@@ -47,7 +47,7 @@ var _unminify = function(text) {
 };
 
 var getTextContent = function(el) {
-  if (el && el.textContent) {
+  if (el && el.textContent != null) {
     var text = el.textContent;
     if (UNMINIFY) {
       text = _unminify(text);
@@ -60,20 +60,22 @@ var getTextContent = function(el) {
 };
 
 var keyCheck = function(func) {
-  return function(e) { 
-    if (e.keyCode === KEY_CODE) {
+  return function(ev) { 
+    if (ev.keyCode === KEY_CODE) {
       func();
-      e.preventDefault();
+      ev.preventDefault();
     }
-  }
+  };
 };
 
 var reqCheck = function(name, func) {
-  return function(req) { if (name in req) func(); }
+  return function(req) { 
+    if (req[name] !== undefined) func(); 
+  };
 };
 
 var load = function(func) {
-  var styles = {}, current;
+  var styles = {}, current, total = 0;
   
   // ========= CREATE THE CHROME ========= //
   
@@ -140,6 +142,26 @@ var load = function(func) {
     return el;
   })();
   
+  // add a new stylesheet, needs cleaning
+  var add = (function() {
+    var el = doc.createElement('button');
+    el.textContent = 'Add';
+    bar.appendChild(el);
+    el.addEventListener('click', function() {
+      var style = doc.createElement('style');
+      doc.head.appendChild(style);
+      style.textContent = '/* Stylesheet: ' + total + ' */';
+      current = 'style[' + (total++) + ']';
+      styles[current] = style;
+      select.innerHTML += 
+        '<option value="' + current + '">' 
+          + current + '</option>';
+      select.selectedIndex = select.length - 1;
+      edit.value = style.textContent;
+    }, false);
+    return el;
+  })();
+  
   // a stylesheet with animations is really annoying to 
   // edit - the animations will play every key stroke
   // this adds a "no animations" checkbox to temporarily 
@@ -165,50 +187,66 @@ var load = function(func) {
   
   // =========== LOAD STYLESHEETS ============ //
   (function load(done) {  
-    var elements = Array.prototype.slice.call(doc.querySelectorAll(
-      'link[rel="stylesheet"], style'
-    )), cur = elements.length;
+    var el = doc.querySelectorAll('link[rel="stylesheet"], style'),
+        cur = el.length;
     
-    // get the stylesheets through XHR, add STYLE elements in place of LINKs
-    elements.forEach(function(style, i) {
-      var name = (style.href 
-        ? ((style.title && !styles[style.title])
-          ? style.title 
-          : style.href) 
-        : 'style[' + i + ']'
-      ).slice(0, 40);
-      if (!current) current = name;
+    if (!cur) {
+      var style = doc.createElement('style');
+      style.textContent = '/* No stylesheet found. */';
+      doc.head.appendChild(style);
+      el = [ style ];
+      cur++;
+    }
+    
+    // get the stylesheets through XHR, 
+    // add STYLE elements in place of LINKs
+    slice.call(el).forEach(function(style) {
+      var name = style.href;
+      if (name) {
+        name = name.replace(/^[^:\/]+:\/\/[^\/]+/, '');
+      } else {
+        name = style.title;
+      }
+      if (!name || styles[name]) {
+        name = 'style[' + (total++) + ']';
+      }
+      name = name.slice(0, 40);
+      
+      current = current || name;
       if (style.href) {
         chrome.extension.sendRequest({get: style.href}, function(res) {
           var err = res.err, css = res.text;
+          
           if (err) {
             console.log('ERROR:', err);
             css = '/* Unable to load ' 
               + (style.href || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
               + ' */';
           }
+          
+          // turn @import "foo"; into @import url("foo");
+          css = css.replace(
+            /(@import\s+)(["'][^'"]+["'])([^\n;]*;)/gi, 
+            '$1url($2)$3'
+          );
+          
           // need to fix relative url()'s in the stylesheet 
-          // by prefixing them with the link's @href
-          css = (css
-            .replace(/(@import\s+)(["'].+?["'])([^;]*;)/gi, '$1url($2)$3')
-            .replace(/url\(([^)]+)\)/gi, function($0, $1) {
-              
-              // trim quotes and space
-              $1 = $1.replace(/^['"]\s*|\s*['"]$/g, ''); 
-              
-              // absolute uri - return as normal
-              if (/^(\/|\w+?:)/.test($1)) return $0; 
-              
-              // does it have a trailing slash?
-              return /\/$/.test(style.href)
-                ? 'url("' + style.href + $1 + '")'
-                : 'url("' + style.href.replace(/[^\/]+$/, '') + $1 + '")';
-            })
-          ); 
+          // by prefixing them with the LINK's @href
+          css = css.replace(/url\(([^)]+)\)/gi, function(str, url) {
+            // trim quotes and space
+            url = url.trim().replace(/^['"]|['"]$/g, ''); 
+            
+            // absolute uri - return as normal
+            if (/^(\/|\w+:)/.test(url)) return str; 
+            
+            // resolve new relative path
+            return 'url("' 
+              + style.href.replace(/\/[^\/]*$/g, '') 
+              + '/' + url + '")';
+          });
+          
           styles[name] = doc.createElement('style');
-          if (style.media) { 
-            styles[name].media = style.media;
-          }
+          if (style.media) styles[name].media = style.media;
           styles[name].textContent = css;
           style.parentNode.replaceChild(styles[name], style);
           if (name === current) {
@@ -230,7 +268,7 @@ var load = function(func) {
     var update, scroll = 0;
     
     // toggle the frame in and out
-    var _toggle = function() {
+    var toggle = function() {
       if (frame.style.display !== 'block') {
         frame.style.display = 'block';
       } else {
@@ -241,7 +279,7 @@ var load = function(func) {
       }
     };
     
-    frame.contentDocument.addEventListener('keydown', keyCheck(_toggle), false);
+    frame.contentDocument.addEventListener('keydown', keyCheck(toggle), false);
     
     // update the stylesheet every key stroke
     edit.addEventListener('keyup', function(ev) {
@@ -270,9 +308,8 @@ var load = function(func) {
         edit.scrollTop = scroll;
         ev.preventDefault();
         ev.stopPropagation();
-      } else {
-        scroll = edit.scrollTop;
       }
+      scroll = edit.scrollTop;
     }, false);
     
     edit.addEventListener('click', function() {
@@ -280,7 +317,7 @@ var load = function(func) {
     }, false);
     
     // execute the callback
-    return func(_toggle);
+    return func(toggle);
   });
 };
 

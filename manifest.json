@@ -1,6 +1,6 @@
 {
   "name": "Live Stylesheets",
-  "version": "0.16",
+  "version": "0.18",
   "description": "Live (CSS) Stylesheet Editing, similar to the full version of Firebug.",
   "permissions": ["http://*/", "https://*/"],
   "browser_action": {

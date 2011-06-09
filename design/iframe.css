@@ -9,6 +9,7 @@ div {
 button, select { font: inherit; outline: none !important; }
 div > button { float: right; }
 div > select { float: left; }
+select + button { float: left; margin-left: 10px; }
 
 div > label {
   float: left; margin-left: 20px; 

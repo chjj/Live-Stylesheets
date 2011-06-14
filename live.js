@@ -77,8 +77,27 @@ var reqCheck = function(name, func) {
 var load = function(func) {
   var styles = {}, current, total = 0;
   
-  // ========= CREATE THE CHROME ========= //
+  // ========== HELPERS ========== //
+  var setCurrent = function(name, change) {
+    current = name;
+    if (styles[name]) {
+      edit.value = getTextContent(styles[name]);
+      edit.focus();
+      edit.setSelectionRange(0, 0);
+      if (change && select.options[name]) { // could remove this `if`
+        select.options.selectedIndex = select.options[name].index;
+      }
+    }
+  };
   
+  var addStyle = function(name, el) {
+    styles[name] = el;
+    select.innerHTML += 
+      '<option id="' + name + '" value="' + name + '">' 
+        + name + '</option>';
+  };
+  
+  // ========= CREATE THE CHROME ========= //
   // need to wrap everything in an iframe so the 
   // elements are not affected by the page's stylesheet
   var frame = (function() {
@@ -125,6 +144,7 @@ var load = function(func) {
         frame.style.top = 'auto';
         frame.style.bottom = '0px';
       }
+      edit.focus();
     }, false);
     return el;
   })();
@@ -134,10 +154,7 @@ var load = function(func) {
     var el = doc.createElement('select');
     bar.appendChild(el);
     el.addEventListener('change', function() {
-      current = el.value;
-      if (styles[current]) {
-        edit.value = getTextContent(styles[current]);
-      }
+      setCurrent(el.value);
     }, false);
     return el;
   })();
@@ -148,16 +165,13 @@ var load = function(func) {
     el.textContent = 'Add';
     bar.appendChild(el);
     el.addEventListener('click', function() {
+      var name = 'style[' + total + ']';
       var style = doc.createElement('style');
       doc.head.appendChild(style);
-      style.textContent = '/* Stylesheet: ' + total + ' */';
-      current = 'style[' + (total++) + ']';
-      styles[current] = style;
-      select.innerHTML += 
-        '<option value="' + current + '">' 
-          + current + '</option>';
-      select.selectedIndex = select.length - 1;
-      edit.value = style.textContent;
+      style.textContent = '/* Stylesheet: ' + total + ' */\n';
+      addStyle(name, style);
+      setCurrent(name, true);
+      total++;
     }, false);
     return el;
   })();
@@ -188,39 +202,40 @@ var load = function(func) {
   // =========== LOAD STYLESHEETS ============ //
   (function load(done) {  
     var el = doc.querySelectorAll('link[rel="stylesheet"], style'),
-        cur = el.length;
+        pending = el.length;
     
-    if (!cur) {
+    if (!pending) {
       var style = doc.createElement('style');
       style.textContent = '/* No stylesheet found. */';
       doc.head.appendChild(style);
       el = [ style ];
-      cur++;
+      pending++;
     }
     
     // get the stylesheets through XHR, 
     // add STYLE elements in place of LINKs
-    slice.call(el).forEach(function(style) {
-      var name = style.href;
+    slice.call(el).forEach(function(el) {
+      var name = el.href;
       if (name) {
         name = name.replace(/^[^:\/]+:\/\/[^\/]+/, '');
       } else {
-        name = style.title;
+        name = el.title;
       }
       if (!name || styles[name]) {
         name = 'style[' + (total++) + ']';
       }
       name = name.slice(0, 40);
       
-      current = current || name;
-      if (style.href) {
-        chrome.extension.sendRequest({get: style.href}, function(res) {
+      if (el.href) {
+        var style = doc.createElement('style');
+        addStyle(name, style);
+        chrome.extension.sendRequest({get: el.href}, function(res) {
           var err = res.err, css = res.text;
           
           if (err) {
             console.log('ERROR:', err);
             css = '/* Unable to load ' 
-              + (style.href || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+              + (el.href || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
               + ' */';
           }
           
@@ -230,40 +245,45 @@ var load = function(func) {
             '$1url($2)$3'
           );
           
-          // need to fix relative url()'s in the stylesheet 
+          // need to fix url()'s in the stylesheet 
           // by prefixing them with the LINK's @href
           css = css.replace(/url\(([^)]+)\)/gi, function(str, url) {
             // trim quotes and space
             url = url.trim().replace(/^['"]|['"]$/g, ''); 
             
-            // absolute uri - return as normal
-            if (/^(\/|\w+:)/.test(url)) return str; 
+            // absolute url - return as normal
+            if (/^([^:\/]+:|\/\/)/.test(url)) return str; 
             
-            // resolve new relative path
-            return 'url("' 
-              + style.href.replace(/\/[^\/]*$/g, '') 
-              + '/' + url + '")';
+            if (url[0] !== '/') {
+              // resolve new relative path
+              return 'url("' 
+                + el.href.replace(/\/[^\/]*$/g, '') 
+                + '/' + url + '")';
+            } else {
+              // resolve to absolute url, hosts might be different
+              // make sure `el.href` is a fully resolved url first
+              var cap = el.href.match(/^(?:[^:\/]+:)?\/\/[^\/]+/);
+              if (cap) {
+                return 'url("' + cap[0] + url + '")';
+              } else {
+                return str;
+              }
+            }
           });
           
-          styles[name] = doc.createElement('style');
-          if (style.media) styles[name].media = style.media;
-          styles[name].textContent = css;
-          style.parentNode.replaceChild(styles[name], style);
-          if (name === current) {
-            edit.value = getTextContent(styles[name]);
-          }
-          --cur || done();
+          style.textContent = css;
+          if (el.media) style.media = el.media;
+          el.parentNode.replaceChild(style, el);
+          --pending || done();
         });
       } else {
-        styles[name] = style;
-        if (name === current) {
-          edit.value = getTextContent(style);
-        }
-        --cur || done();
+        addStyle(name, el);
+        --pending || done();
       }
-      select.innerHTML += '<option value="' + name + '">' + name + '</option>';
     });
   })(function() {
+    setCurrent(select.options[0].id);
+    
     // ========= BIND EVENTS ========= //
     var update, scroll = 0;
     
@@ -271,6 +291,7 @@ var load = function(func) {
     var toggle = function() {
       if (frame.style.display !== 'block') {
         frame.style.display = 'block';
+        edit.focus();
       } else {
         frame.style.display = 'none';
         if (styles[current]) {

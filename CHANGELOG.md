@@ -4,6 +4,8 @@
 
 - Added "Add" button.
 - Fixed frame on pages with no styles.
+- Changed focusing behavior.
+- Fixed @imported url's from different domains.
 
 ## v0.17
 

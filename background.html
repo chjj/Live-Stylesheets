@@ -1,5 +1,9 @@
 <!doctype html><title></title><script>(function() {
 
+/**
+ * Background
+ */
+
 // make the icon functional
 chrome.browserAction.onClicked.addListener(function(tab) {
   chrome.tabs.sendRequest(tab.id, {toggle: true});
@@ -8,12 +12,16 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 // a simple get request
 chrome.extension.onRequest.addListener(function(req, sender, send) {
   if (!req.get) return;
-  var xhr = new XMLHttpRequest();
-  var timeout = setTimeout(function() {
+
+  var xhr = new XMLHttpRequest()
+    , timeout;
+
+  timeout = setTimeout(function() {
     xhr.onreadystatechange = function() {};
     xhr.abort();
     send({err:'Timeout.'});
   }, 5000);
+
   xhr.onreadystatechange = function() {
     if (+xhr.readyState === 4) { 
       clearTimeout(timeout);
@@ -24,6 +32,7 @@ chrome.extension.onRequest.addListener(function(req, sender, send) {
       }
     }
   };
+
   xhr.open('GET', req.get, true);
   xhr.send();
 });

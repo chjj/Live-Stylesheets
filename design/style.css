@@ -1,3 +1,7 @@
+/**
+ * Frame
+ */
+
 [id="LIVE.STYLESHEETS"] {
   outline: 0; border: 0; margin: 0; padding: 0; overflow: hidden;
   position: fixed; z-index: 10000; top: auto; right: 0; bottom: 0; left: 0;

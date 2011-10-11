@@ -34,27 +34,3 @@ textarea {
   background: #fff;
   outline: none !important;
 }
-
-/**
- * GH-looking scrollbar
- */
-
-::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
-}
-
-::-webkit-scrollbar-track-piece {
-  background-color: #e0e0e0;
-}
-
-::-webkit-scrollbar-thumb:vertical {
-  height: 25px;
-  background-color: #888;
-  -webkit-box-shadow: 0 1px 1px #fff;
-}
-
-::-webkit-scrollbar-thumb:horizontal {
-  width: 25px;
-  background-color: #888;
-}

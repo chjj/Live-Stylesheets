@@ -17,7 +17,7 @@ var USE_SPACES = false;
 
 // the amount of time to wait after a key
 // stroke before updating the page's CSS
-var UPDATE_TIME = 300;
+var UPDATE_TIME = 500;
 
 /**
  * Don't edit below here <--

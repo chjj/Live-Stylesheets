@@ -4,6 +4,7 @@
 
 - Added "Prettify" button
 - Remove auto-prettify option
+- Increase update timeout to 500ms.
 
 ## v0.18
 

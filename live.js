@@ -19,10 +19,6 @@ var USE_SPACES = false;
 // stroke before updating the page's CSS
 var UPDATE_TIME = 300;
 
-// detect whether the CSS is minfied and attempt
-// to unminify and pretty print it - EXPERIMENTAL
-var UNMINIFY = false;
-
 /**
  * Don't edit below here <--
  */
@@ -61,10 +57,6 @@ var prettify = function(text) {
 var getTextContent = function(el) {
   if (el && el.textContent != null) {
     var text = el.textContent;
-
-    if (UNMINIFY && !/[\r\n]/.test(text)) {
-      text = prettify(text);
-    }
 
     if (USE_SPACES) {
       text = text.replace(/\t/g, TAB_CHARACTERS);

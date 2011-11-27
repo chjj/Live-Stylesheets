@@ -4,7 +4,8 @@
  * Copyright (c) 2010-2011, Christopher Jeffrey. (MIT Licensed)
  */
 
-(function() {
+;(function() {
+
 // the "toggle" key code - default is F9
 var KEY_CODE = 120;
 
@@ -33,7 +34,7 @@ if (USE_SPACES) {
   TAB_CHARACTERS = '\t';
 }
 
-var window = this 
+var window = this
   , doc = this.document
   , root = doc.documentElement
   , slice = [].slice;
@@ -42,33 +43,37 @@ var window = this
  * Helpers
  */
 
-var unminify = function(text) {
-  return !/[\r\n]/.test(text) ? (text
+var prettify = function(text) {
+  return text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/([^\s};])(})/g, '$1 $2')
     .replace(/(})([^\s])/g, '$1\n$2')
     .replace(/(\w)({)/g, '$1 $2')
     .replace(/({)(\w)/g, '$1 $2')
-    .replace(/([;:,])([^\s])/g, '$1 $2')
-
+    .replace(/([;,])([^\s])/g, '$1 $2')
+    .replace(/({[^{}:]+:)([^\s])/g, '$1 $2')
     // pretty print
     .replace(/([;{])[ \t]*(\w)/g, '$1\n\t$2')
-    .replace(/([\w;])[ \t]*(})/g, '$1\n$2')
-  ) : text;
+    .replace(/([\w;])[ \t]*(})/g, '$1\n$2');
 };
 
 var getTextContent = function(el) {
   if (el && el.textContent != null) {
     var text = el.textContent;
-    if (UNMINIFY) {
-      text = unminify(text);
+
+    if (UNMINIFY && !/[\r\n]/.test(text)) {
+      text = prettify(text);
     }
+
     if (USE_SPACES) {
       text = text.replace(/\t/g, TAB_CHARACTERS);
     }
+
     return text;
   }
+
+  return '';
 };
 
 var keyCheck = function(func) {
@@ -200,6 +205,19 @@ var load = function(func) {
     return el;
   })();
 
+  // prettify button
+  var pretty = (function() {
+    var el = doc.createElement('button');
+    el.textContent = 'Prettify';
+    bar.appendChild(el);
+    el.addEventListener('click', function() {
+      edit.value = prettify(edit.value);
+      edit.focus();
+      edit.setSelectionRange(0, 0);
+    }, false);
+    return el;
+  })();
+
   // a stylesheet with animations is really annoying to
   // edit - the animations will play every key stroke
   // this adds a "no animations" checkbox to temporarily
@@ -243,12 +261,14 @@ var load = function(func) {
     }
   };
 
-  frame.contentDocument.addEventListener('keydown', keyCheck(toggle), false);
+  frame.contentDocument.addEventListener(
+    'keydown', keyCheck(toggle), false);
 
   // update the stylesheet every key stroke
   edit.addEventListener('keyup', function(ev) {
-    if (!styles[current] 
+    if (!styles[current]
         || ev.keyCode === KEY_CODE) return;
+
     if (UPDATE_TIME) {
       if (update) {
         clearTimeout(update);
@@ -337,8 +357,7 @@ var load = function(func) {
         // turn @import "foo"; into @import url("foo");
         css = css.replace(
           /(@import\s+)(["'][^'"]+["'])([^\n;]*;)/gi,
-          '$1url($2)$3'
-        );
+          '$1url($2)$3');
 
         // need to fix url()'s in the stylesheet
         // by prefixing them with the LINK's @href
@@ -374,11 +393,10 @@ var load = function(func) {
       });
     });
   })(function() {
-    // ensure the first 
+    // ensure the first
     // stylesheet is selected
     setCurrent(select.options[0].id);
 
-    // execute the callback
     return func(toggle);
   });
 };

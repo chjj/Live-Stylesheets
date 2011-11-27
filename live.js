@@ -111,8 +111,13 @@ var load = function(func) {
   var addStyle = function(name, el) {
     styles[name] = el;
     select.innerHTML +=
-      '<option id="' + name + '" value="' + name + '">'
-        + name + '</option>';
+      '<option id="'
+      + name
+      + '" value="'
+      + name
+      + '">'
+      + name
+      + '</option>';
   };
 
   /**
@@ -303,7 +308,7 @@ var load = function(func) {
 
     if (!pending) {
       var style = doc.createElement('style');
-      style.textContent = '/* No stylesheet found. */';
+      style.textContent = '/* No stylesheet found. */\n';
       doc.head.appendChild(style);
       el = [ style ];
       pending++;

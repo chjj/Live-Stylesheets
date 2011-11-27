@@ -208,9 +208,11 @@ var load = function(func) {
     el.textContent = 'Prettify';
     bar.appendChild(el);
     el.addEventListener('click', function() {
+      if (!edit.value || !styles[current]) return;
       edit.value = prettify(edit.value);
       edit.focus();
       edit.setSelectionRange(0, 0);
+      styles[current].textContent = edit.value;
     }, false);
     return el;
   })();
